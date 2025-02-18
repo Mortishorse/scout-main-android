@@ -125,13 +125,7 @@ public class Pit extends Fragment {
                         })
                         .create();
 
-                    if (configPreference.getBoolean("altMode", false)) {
-                        scouterList = new LinkedList<>(Arrays.asList(getResources()
-                            .getStringArray(R.array.royal_students)));
-                    } else {
-                        scouterList = new LinkedList<>(Arrays.asList(getResources()
-                            .getStringArray(R.array.databits_students)));
-                    }
+                    scouterList = debugPreference.getObject("scouter_list", List.class);
                     ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
                         R.layout.ui_list_item,
                         scouterList);
@@ -284,15 +278,9 @@ public class Pit extends Fragment {
         });
 
         binding.loadButton.setOnClickListener(v1 -> {
-            boolean alt = configPreference.getBoolean("altMode");
             String storedLayout;
-            if (alt) {
-                storedLayout = fileUtils.readTextFile(getResources()
-                    .openRawResource(R.raw.royal_pit_layout));
-            } else {
                 storedLayout = fileUtils.readTextFile(getResources()
                     .openRawResource(R.raw.pit_layout));
-            }
 
             scoutUtils.layoutMaker(ScoutUtils.NONE, storedLayout, requireView(),
                 mRecyclerViewTop, mRecyclerViewBot);

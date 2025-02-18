@@ -35,7 +35,6 @@ import com.databits.androidscouting.model.QrCodeViewModel;
 import com.databits.androidscouting.util.MatchInfo;
 import com.databits.androidscouting.util.ScoutUtils;
 import com.databits.androidscouting.util.SheetsUpdateTask;
-import com.databits.androidscouting.util.SheetsUpdateTaskNew;
 import com.databits.androidscouting.util.TeamInfo;
 import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions;
@@ -147,7 +146,7 @@ public class Scanner extends Fragment {
             //        Toast.LENGTH_SHORT).show();
             //} else {
             //call_sheets();
-            call_sheets_new();
+            call_sheets();
             //}
         });
 
@@ -422,8 +421,7 @@ public class Scanner extends Fragment {
         boolean locked = Boolean.parseBoolean(qr_data[7]);
         int match = Integer.parseInt(qr_data[9]);
         boolean delete_data = Boolean.parseBoolean(qr_data[11]);
-        boolean team_selector = Boolean.parseBoolean(qr_data[13]);
-        boolean special_selector = Boolean.parseBoolean(qr_data[15]);
+        boolean special_selector = Boolean.parseBoolean(qr_data[13]);
 
         if (delete_data) {
             PowerPreference.clearAllData();
@@ -435,7 +433,6 @@ public class Scanner extends Fragment {
         configPreference.setInt("crowd_position", crowd_num);
         configPreference.setString("current_scouter", name);
         configPreference.setBoolean("role_locked_toggle", locked);
-        configPreference.setBoolean("altMode", team_selector);
         configPreference.setBoolean("specialSwitch", special_selector);
         //configPreference.setInt("current_match", match);
 
@@ -477,11 +474,6 @@ public class Scanner extends Fragment {
     // Starts the AsyncTask to push the data to the Sheets API.
     protected void call_sheets(){
         SheetsUpdateTask task = new SheetsUpdateTask(requireActivity());
-        task.execute();
-    }
-
-    protected void call_sheets_new(){
-        SheetsUpdateTaskNew task = new SheetsUpdateTaskNew(requireActivity());
         task.execute();
     }
 

@@ -113,14 +113,7 @@ public class Crowd extends Fragment {
                             // Do nothing
                         })
                         .create();
-
-                    if (configPreference.getBoolean("altMode", false)) {
-                        scouterList = new ArrayList<>(Arrays.asList(getResources()
-                            .getStringArray(R.array.royal_students)));
-                    } else {
-                        scouterList = new ArrayList<>(Arrays.asList(getResources()
-                            .getStringArray(R.array.databits_students)));
-                    }
+                    scouterList = debugPreference.getObject("scouter_list", List.class);
                     ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
                         R.layout.ui_list_item,
                         scouterList);
@@ -284,8 +277,9 @@ public class Crowd extends Fragment {
                 openRawResource(R.raw.crowd_layout));
             scoutUtils.layoutMaker(table_status, storedLayout, requireView(),
                 mRecyclerViewTop, mRecyclerViewBot);
-            //binding.loadButton.setVisibility(View.GONE);
-            //binding.autoLoadCheckBox.setVisibility(View.GONE);
+            binding.loadButton.setVisibility(View.INVISIBLE);
+            binding.importButton.setVisibility(View.INVISIBLE);
+            binding.autoLoadCheckBox.setVisibility(View.INVISIBLE);
         });
 
         binding.autoLoadCheckBox.setOnCheckedChangeListener((buttonView, isChecked) ->

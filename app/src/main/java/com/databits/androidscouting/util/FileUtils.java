@@ -150,31 +150,12 @@ public class FileUtils {
     return file.exists();
   }
 
-  public String grantedPathString() {
-    // All possible paths that the user has granted access to
-    Map<String, Set<String>> grantedPaths = DocumentFileCompat.getAccessibleAbsolutePaths(context);
+  public void testStorage() {
+    DocumentFile storage = storageFolder();
 
-    String firstPath;
-    // Get the first path that the user has granted access to
-    // TODO: Handle the case where the user has granted access to multiple paths
-    for (Set<String> pathSet : grantedPaths.values()) {
-      if (!pathSet.isEmpty()) {
-        firstPath = pathSet.iterator().next();
-        return firstPath;
-      }
+    if (storage != null) {
+      storage.createFile("text/csv", "pit");
     }
-    return null;
-  }
-
-  public DocumentFile grantedFolder() {
-    return DocumentFileCompat.fromFullPath(context,grantedPathString());
-  }
-
-  public ZipFile CreateZipFile(String zipName) {
-    DocumentFile folder = grantedFolder();
-    ZipFile zipFile = new ZipFile(folder.getUri().getPath() + "/" + zipName);
-    zipFile.setRunInThread(true);
-    return zipFile;
   }
 
   public void handleZip(Uri uri) {

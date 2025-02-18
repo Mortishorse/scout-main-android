@@ -1,15 +1,26 @@
 package com.databits.androidscouting.fragment.settings;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
+import com.anggrayudi.storage.SimpleStorageHelper;
 import com.databits.androidscouting.MainActivity;
 import com.databits.androidscouting.R;
 import com.databits.androidscouting.databinding.FragmentSettingsDashboardBinding;
@@ -21,6 +32,10 @@ import com.databits.androidscouting.util.TeamInfo;
 import com.preference.PowerPreference;
 import com.preference.Preference;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Objects;
+
+import static android.content.ContentValues.TAG;
 
 public class Dashboard extends Fragment {
   private FragmentSettingsDashboardBinding binding;
@@ -30,7 +45,9 @@ public class Dashboard extends Fragment {
   TeamInfo teamInfo;
 
   Preference configPreference = PowerPreference.getFileByName("Config");
+  Preference debugPreference = PowerPreference.getFileByName("Debug");
 
+  SimpleStorageHelper storageHelper = new SimpleStorageHelper(this);
 
   MainActivity mainActivity;
 
@@ -71,33 +88,102 @@ public class Dashboard extends Fragment {
 
     binding.buttonBack.setOnClickListener(v1 -> controller.navigateUp());
 
-    binding.buttonTest.setOnClickListener(v1 -> controller.navigate(
-        R.id.action_SettingsFragment_to_SettingsTestingFragment));
+    binding.buttonImportZip.setOnClickListener(view -> {
+      storageHelper.requestStorageAccess();
+      storageHelper.openFilePicker(69, false);
+      storageHelper.setOnFileSelected((uri, document) -> {
+        if (document == null) {
+          Log.d(TAG, "Error or No file selected");
+        } else {
+          fileUtils.handleZip(document.get(0).getUri());
+        }
+        return null;
+      });
+    });
 
-    binding.buttonConfig.setOnClickListener(v1 -> controller.navigate(
+    binding.googleStatusIndicator.indicatorButton.setOnClickListener(v1 -> controller.navigate(
         R.id.action_SettingsFragment_to_SettingsManualConfigFragment));
 
-    binding.buttonFile.setOnClickListener(v1 -> controller.navigate(
-        R.id.action_SettingsFragment_to_SettingsFileHandlerFragment));
+    binding.scouterListStatusIndicator.indicatorButton.setOnClickListener(view -> {
+      AlertDialog scouterListDialog = new AlertDialog.Builder(requireContext())
+          .setTitle("Do you want to import a new scouter list?")
+          .setMessage("This will overwrite the current scouter list. \n\n"
+              + "The format is a text file with one scouter name per line. \n\n"
+              + "Select Yes and then select a text file to import from your device.")
+          .setPositiveButton("Yes", (dialog1, which1) -> {
+            Intent data = fileUtils.intentFileDialog();
+            Intent.createChooser(data, "Select a scouter_list.txt file to import");
+            importScouterLauncher.launch(data);
+          })
+          .setNegativeButton("Cancel", (dialog1, which1) -> {
+            // Do nothing
+          })
+          .create();
+      scouterListDialog.show();
+    });
 
-    // Internet Status Indicator
-    //updateInternetStatus();
+    binding.buttonDebug.setOnClickListener(view1 -> PowerPreference.showDebugScreen(true));
 
-    // TEMP Hardcoded
-    binding.teamListStatusIndicator.indicatorTitleText.setText("Team List");
-    binding.scouterListStatusIndicator.indicatorTitleText.setText("Scouter List");
-    //
-    //binding.teamListStatusIndicator.indicatorStatusText.setText("Not Loaded");
-    //binding.scouterListStatusIndicator.indicatorStatusText.setText("Loaded");
-    //
-    //binding.teamListStatusIndicator.indicatorButton.setImageResource(R.drawable.close);
-    //binding.scouterListStatusIndicator.indicatorButton.setImageResource(R.drawable.checkmark);
-    //
-    //
-    //binding.teamListStatusIndicator.indicatorButton.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(),
-    //    com.github.dhaval2404.colorpicker.R.color.red_200));
-    //binding.scouterListStatusIndicator.indicatorButton.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(),
-    //    com.github.dhaval2404.colorpicker.R.color.green_200));
+    binding.permissionStatusIndicator.indicatorButton.setOnClickListener(view1 -> {
+
+      AlertDialog permissionDialog = new AlertDialog.Builder(requireContext())
+          .setTitle("Do you want to grant the following permissions?")
+          .setMessage("1. Manage Settings permission which is needed for the app to control the "
+              + "brightness of the screen in the QR view\n"
+              + "2. Camera is required for the QR scanner to work")
+          .setPositiveButton("Yes", (dialog1, which1) -> {
+            // Launches the intent to allow the app to change the screen brightness
+            if (Settings.System.canWrite(requireContext())) {
+              Toast.makeText(requireContext(), "Brightness control permission already granted!",
+                  Toast.LENGTH_SHORT).show();
+            } else {
+              Toast.makeText(requireContext(), "Brightness control permission requested",
+                  Toast.LENGTH_SHORT).show();
+              Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
+              intent.setData(Uri.parse("package:" + requireActivity().getPackageName()));
+              startActivity(intent);
+            }
+
+            // Checks if all other permissions are granted
+            if (scoutUtils.allPermissionsGranted()) {
+              Toast.makeText(requireContext(), "All other permissions already granted!",
+                  Toast.LENGTH_SHORT).show();
+            } else {
+              ActivityCompat.requestPermissions(
+                  requireActivity(), ScoutUtils.REQUIRED_PERMISSIONS,
+                  ScoutUtils.REQUEST_CODE_PERMISSIONS
+              );
+            }
+          })
+          .setNegativeButton("Cancel", (dialog1, which1) -> {
+            // Do nothing
+          })
+          .create();
+      permissionDialog.show();
+
+    });
+
+    binding.matchListStatusIndicator.indicatorButton.setOnClickListener(view1 -> {
+      AlertDialog matchListDialog = new AlertDialog.Builder(requireContext())
+          .setTitle("Do you want to import a new match list?")
+          .setMessage("This will overwrite the current match list. \n\n"
+              + "The format is a csv file, 1st line has the header and then one match per line.\n\n"
+              + "Match,Blue 1,Blue 2,Blue 3,Red 1,Red 2,Red 3\n\n"
+              + "1,2169,6147,7619,2062,4786,2987\n"
+              + "2,7530,3100,6758,8803,5913,4229\n\n"
+              + "Select Yes and then select your file to import it from your device.")
+          .setPositiveButton("Yes", (dialog1, which1) -> {
+            Intent data  = fileUtils.intentFileDialog();
+            Intent.createChooser(data, "Select a match.csv file to import");
+            matchLauncher.launch(data);
+          })
+          .setNegativeButton("Cancel", (dialog1, which1) -> {
+            // Do nothing
+          })
+          .create();
+      matchListDialog.show();
+
+    });
 
     updateStatusIndicators();
   }
@@ -108,14 +194,20 @@ public class Dashboard extends Fragment {
 
     setStatusIndicator(binding.matchListStatusIndicator, "Match List",
         fileUtils.fileExists(String.valueOf(
-            new File(requireContext().getFilesDir() + "/" + "teams.csv"))),
+            new File(requireContext().getFilesDir() + "/" + "match.csv"))),
         "Loaded", "Not Loaded");
 
-    setStatusIndicator(binding.googleStatusIndicator, "Google", configPreference.getString("google_account_name").isEmpty(),
+    setStatusIndicator(binding.scouterListStatusIndicator, "Scouter List",
+        fileUtils.fileExists(String.valueOf(
+            new File(requireContext().getFilesDir() + "/" + "scouter_list.txt"))) && !debugPreference.getString("scouter_list").isEmpty(),
+        "Loaded", "Not Loaded");
+
+    setStatusIndicator(binding.googleStatusIndicator, "Google", !configPreference.getString("google_account_name").isEmpty(),
         "Logged in", "Logged out");
 
     setStatusIndicator(binding.permissionStatusIndicator, "Permissions",
-        scoutUtils.allPermissionsGranted(), "Granted", "Denied");
+        scoutUtils.allPermissionsGranted() && Settings.System.canWrite(requireActivity()),
+        "Granted", "Denied");
   }
 
   public void setStatusIndicator(UiStatusIndicatorBinding StatusIndicator, String title,
@@ -140,4 +232,35 @@ public class Dashboard extends Fragment {
     super.onDestroyView();
     binding = null;
   }
+
+  public ActivityResultLauncher<Intent> importScouterLauncher = registerForActivityResult(
+      new ActivityResultContracts.StartActivityForResult(),
+      result -> {
+        if (result.getResultCode() == Activity.RESULT_OK) {
+          Intent data = result.getData();
+          if (data != null) {
+            String path = FileUtils.copyFileToInternal(requireContext(),data.getData(),
+                "scouter_list.txt");
+            assert path != null;
+            File file1 = new File(path);
+            ArrayList<String> studentList = fileUtils.readList(file1);
+            debugPreference.setObject("scouter_list", studentList);
+          }
+        }
+      }
+  );
+
+  ActivityResultLauncher<Intent> matchLauncher = registerForActivityResult(
+      new ActivityResultContracts.StartActivityForResult(),
+      result -> {
+        if (result.getResultCode() == Activity.RESULT_OK) {
+          Intent data = result.getData();
+          if (data != null) {
+            Objects.requireNonNull(FileUtils.copyFileToInternal(requireContext(), data.getData(),
+                "match.csv"));
+            teamInfo.read_teams();
+          }
+        }
+      }
+  );
 }
