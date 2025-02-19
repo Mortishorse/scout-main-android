@@ -94,10 +94,10 @@ public class Drawing extends Fragment {
         buttonPlace.setImageResource(R.drawable.android_x);
         break;
       case 1:
-        buttonPlace.setImageResource(R.drawable.cube44);
+        buttonPlace.setImageResource(R.drawable.CageShallow);
         break;
       case 2:
-        buttonPlace.setImageResource(R.drawable.cone44);
+        buttonPlace.setImageResource(R.drawable.CageDeep);
         break;
     }
     // Increment counter by 1 and use modulo to cycle through the drawables (0,1,2)
